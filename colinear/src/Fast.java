@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class Fast {
@@ -162,16 +163,12 @@ public class Fast {
 
    private static void draw(List<Point> points)
    {
-      Point p1 = points.get(0);
-      Point p2 = points.get(1);
-      if (p1.compareTo(p2) >= 0) return;
-
       StdDraw.setXscale(0, 32768);
       StdDraw.setYscale(0, 32768);
       StdDraw.show(0);
       StdDraw.setPenRadius(0.02);
 
-//      Collections.sort(points);
+      Collections.sort(points);
 
       Point point = null;
       for (int i = 0; i < points.size(); i++)
