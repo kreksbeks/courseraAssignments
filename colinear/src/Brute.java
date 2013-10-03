@@ -9,6 +9,8 @@ public class Brute {
 
    public static void main(String[] args)
    {
+      initStdDraw();
+
       Point[] points = readPoints(args[0]);
       Arrays.sort(points);
 
@@ -31,19 +33,14 @@ public class Brute {
    {
       while(nextStep())
       {
-         if (isCollinear(combination)) print();
+         if (isCollinear(combination)) draw();
       }
-
    }
 
-   private void print()
+   private void draw()
    {
-      Point point = null;
       Arrays.sort(combination);
-      StdDraw.setXscale(0, 32768);
-      StdDraw.setYscale(0, 32768);
-      StdDraw.show(0);
-      StdDraw.setPenRadius(0.02);
+
       for (int i = 0; i < combination.length; i++)
       {
          Point p = combination[i];
@@ -53,18 +50,12 @@ public class Brute {
          {
             StdOut.print(" -> ");
          }
-
-         //draw point
-         p.draw();
-
-         //draw line
-         if (point != null)
-         {
-            point.drawTo(p);
-         }
-
-         point = p;
       }
+
+      //draw line
+      Point first = combination[0];
+      Point last = combination[combination.length - 1];
+      first.drawTo(last);
 
       StdOut.println();
       StdDraw.show(0);
@@ -95,7 +86,9 @@ public class Brute {
       for (int i = 0; i < N; i++) {
          int x = in.readInt();
          int y = in.readInt();
-         points[i] = new Point(x, y);
+         Point p = new Point(x, y);
+         points[i] = p;
+         p.draw();
       }
 
       return points;
@@ -128,6 +121,16 @@ public class Brute {
    {
       return points.length >= STEP_SIZE;
    }
+
+
+   private static void initStdDraw()
+   {
+      StdDraw.setXscale(0, 32768);
+      StdDraw.setYscale(0, 32768);
+      StdDraw.show(0);
+      StdDraw.setPenRadius(0.02);
+   }
+
 
    private static class Permutation
    {
