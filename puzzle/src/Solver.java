@@ -3,6 +3,7 @@ public class Solver
    private final Board initialPosition;
    private Iterable<Board> solution;
    private Boolean solvable;
+   private int minNoOfMovesToSolve;
 
    // find a solution to the initial board (using the A* algorithm)
    public Solver(Board initial)
@@ -35,42 +36,10 @@ public class Solver
 
       if (initBoardSolved)
       {
-         solution = reconstructSolution(stepInitBoard);
+         Stack<Board> s = reconstructSolution(stepInitBoard);
+         solution = s;
          solvable = true;
-      }
-
-      return initBoardSolved;
-   }
-
-   // is the initial board solvable?
-   private boolean isSolvable2()
-   {
-      if (solvable != null) return solvable;
-
-      int manhatan = manhattanDistance(initialPosition.)
-
-      Board twinPosition = initialPosition.twin();
-
-      MinPQ<SearchNode> initialQueue = new MinPQ<SearchNode>();
-      MinPQ<SearchNode> twinQueue = new MinPQ<SearchNode>();
-
-      initialQueue.insert(new SearchNode(initialPosition, 0, null));
-      twinQueue.insert(new SearchNode(twinPosition, 0, null));
-
-      SearchNode stepInitBoard;
-      SearchNode stepTwinBoard;
-      boolean initBoardSolved;
-      do
-      {
-         stepInitBoard = nextStep(initialQueue);
-         stepTwinBoard = nextStep(twinQueue);
-         initBoardSolved = stepInitBoard.position.isGoal();
-      } while (!initBoardSolved && !stepTwinBoard.position.isGoal());
-
-      if (initBoardSolved)
-      {
-         solution = reconstructSolution(stepInitBoard);
-         solvable = true;
+         minNoOfMovesToSolve = s.size();
       }
 
       return initBoardSolved;
@@ -79,7 +48,7 @@ public class Solver
    // min number of moves to solve initial board; -1 if no solution
    public int moves()
    {
-      return initialPosition.hamming();
+      return isSolvable() ? minNoOfMovesToSolve : -1;
    }
 
    // sequence of boards in a shortest solution; null if no solution

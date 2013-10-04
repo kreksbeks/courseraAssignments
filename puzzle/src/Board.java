@@ -31,7 +31,7 @@ public class Board
 
    private Board(char[] twin, int dimension, int gap)
    {
-      blocks = twin;
+      this.blocks = twin;
       this.dimension = dimension;
       this.gapPosition = gap;
    }
@@ -50,7 +50,7 @@ public class Board
       for (int i = 0; i < blocks.length; i++)
       {
          if (blocks[i] == GAP) continue;
-         if (blocks[i] != valueForPosition(i)) numberOfMisplacedBlocks++;
+         if (blocks[i] != expectedValue(i)) numberOfMisplacedBlocks++;
       }
 
       return numberOfMisplacedBlocks;
@@ -70,15 +70,10 @@ public class Board
       return sumOfDistancesToGoal;
    }
 
-   private int manhattanDistance2D(char block, int i, int j)
+   private int manhattanDistance(int block, int p)
    {
-      int valueForPosition = block == GAP ? dimension() : valueForPosition(i, j);
+      if (block == GAP) return 0;
 
-      return dimension() / valueForPosition + (dimension() - 1) - j;
-   }
-
-   private int manhattanDistance(char block, int p)
-   {
       Index current = new Index(p).invoke();
       Index expected = new Index(expectedPosition(block)).invoke();
 
@@ -95,7 +90,7 @@ public class Board
    {
       for (int i = 0; i < blocks.length; i++)
       {
-         if (blocks[i] != valueForPosition(i))
+         if (blocks[i] != expectedValue(i))
          {
             return false;
          }
@@ -104,14 +99,7 @@ public class Board
       return true;
    }
 
-   private int valueForPosition(int row, int column)
-   {
-      if (row == dimension() - 1 && column == dimension() - 1) return 0;
-
-      return to1D(row, column) + 1;
-   }
-
-   private int valueForPosition(int i)
+   private int expectedValue(int i)
    {
       return i == lastIndex() ? GAP : i + 1;
    }
