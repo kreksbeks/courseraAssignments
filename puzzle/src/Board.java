@@ -1,8 +1,6 @@
-import com.sun.org.apache.bcel.internal.generic.NEW;
-
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
 public class Board
 {
@@ -10,35 +8,38 @@ public class Board
 
    private final char[] blocks;
    private int gapPosition = -1;
+   private int dimension;
 
    // construct a board from an N-by-N array of blocks
    // (where blocks[i][j] = block in row i, column j)
    public Board(int[][] blocks)
    {
-      this.blocks = new char[blocks.length * blocks.length];
+      dimension = blocks.length;
+      this.blocks = new char[dimension * dimension];
 
-      for (int i = 0; i < blocks.length; i++)
+      for (int i = 0; i < dimension; i++)
       {
-         for (int j = 0; j < blocks.length; j++)
+         for (int j = 0; j < dimension; j++)
          {
             char v = (char) blocks[i][j];
-            int index1D = i * dimension() + j;
-            this.blocks[index1D] = v;
+            this.blocks[to1D(i, j)] = v;
 
-            if (v == GAP) gapPosition = index1D;
+            if (v == GAP) gapPosition = to1D(i, j);
          }
       }
    }
 
-   private Board(char[] twin)
+   private Board(char[] twin, int dimension, int gap)
    {
       blocks = twin;
+      this.dimension = dimension;
+      this.gapPosition = gap;
    }
 
    // board dimension N
    public int dimension()
    {
-      return blocks.length;
+      return dimension;
    }
 
    // number of blocks out of place
@@ -48,13 +49,12 @@ public class Board
 
       for (int i = 0; i < blocks.length; i++)
       {
+         if (blocks[i] == GAP) continue;
          if (blocks[i] != valueForPosition(i)) numberOfMisplacedBlocks++;
       }
 
       return numberOfMisplacedBlocks;
    }
-
-
 
    // sum of Manhattan distances between blocks and goal
    public int manhattan()
@@ -70,7 +70,7 @@ public class Board
       return sumOfDistancesToGoal;
    }
 
-   private int manhattanDistance(char block, int i, int j)
+   private int manhattanDistance2D(char block, int i, int j)
    {
       int valueForPosition = block == GAP ? dimension() : valueForPosition(i, j);
 
@@ -79,20 +79,21 @@ public class Board
 
    private int manhattanDistance(char block, int p)
    {
-      Index index = new Index(p).invoke();
+      Index current = new Index(p).invoke();
+      Index expected = new Index(expectedPosition(block)).invoke();
 
-      int i = index.y();
-      int j = index.x();
+      int i = current.y();
+      int j = current.x();
 
-      int dy = Math.abs(positionForValue(block) / dimension() - i);
-      int dx = (dimension() - 1) - j;
+      int dy = Math.abs(expected.y() - i);
+      int dx = Math.abs(expected.x() - j);
       return dy + dx;
    }
 
    // is this board the goal board?
    public boolean isGoal()
    {
-      for (int i = 0; i < dimension(); i++)
+      for (int i = 0; i < blocks.length; i++)
       {
          if (blocks[i] != valueForPosition(i))
          {
@@ -103,19 +104,19 @@ public class Board
       return true;
    }
 
-   private int valueForPosition(int i, int j)
+   private int valueForPosition(int row, int column)
    {
-      if (i == dimension() - 1 && j == dimension() - 1) return 0;
+      if (row == dimension() - 1 && column == dimension() - 1) return 0;
 
-      return (i * dimension() + j) + 1;
+      return to1D(row, column) + 1;
    }
 
    private int valueForPosition(int i)
    {
-      return (i == lastIndex()) ? GAP : i + 1;
+      return i == lastIndex() ? GAP : i + 1;
    }
 
-   private int positionForValue(int v)
+   private int expectedPosition(int v)
    {
       return v == GAP ? lastIndex() : v - 1;
    }
@@ -130,61 +131,56 @@ public class Board
    {
       char[] twin = Arrays.copyOf(blocks, blocks.length);
 
-      char prev = 0;
-      for (int i = 0; i < dimension(); i++)
+      char prev = GAP;
+      for (int i = 0; i < blocks.length; i++)
       {
-         char current = twin[i];
+         if (i % dimension() == 0) prev = GAP;
 
+         char current = twin[i];
          if (prev != GAP && current != GAP)
          {
             twin[i - 1] = current;
             twin[i] = prev;
             break;
          }
-
          prev = current;
       }
 
-      return new Board(twin);
+      return new Board(twin, dimension(), gapPosition);
    }
 
    // all neighboring boards
-   public Iterable<Board> neighbors()
-   {
-      Set<Board> neighbours = new TreeSet<Board>();
-      neighbours.add(verticalShiftNeighbour());
-      neighbours.add(horizontalShiftNeighbour());
+   public Iterable<Board> neighbors() {
+      Set<Board> neighbours = new HashSet<Board>();
+
+      Index gap = new Index(gapPosition).invoke();
+
+      if (gap.leftShiftAllowed()) {
+         neighbours.add(getBoard(gapPosition - 1));
+      }
+      if (gap.rightShiftAllowed()) {
+         neighbours.add(getBoard(gapPosition + 1));
+      }
+      if (gap.topShiftAllowed()) {
+         neighbours.add(getBoard(to1D(gap.y() - 1, gap.x())));
+      }
+      if (gap.bottomShiftAllowed()) {
+         neighbours.add(getBoard(to1D(gap.y() + 1, gap.x())));
+      }
 
       return neighbours;
    }
 
-   private Board horizontalShiftNeighbour()
-   {
-      Index gapIndex = new Index(gapPosition).invoke();
-
-      char[] horizontalShift = Arrays.copyOf(blocks, blocks.length);
-      Board b = new Board(horizontalShift);
-
-      int newGapPosition;
-      if (gapIndex.x() == 0)
-      {
-         newGapPosition = gapPosition + 1;
-      }
-      else
-      {
-         newGapPosition = gapPosition - 1;
-      }
-
-      horizontalShift[gapPosition] = horizontalShift[newGapPosition];
-      horizontalShift[gapPosition] = GAP;
-      b.gapPosition++;
-
-      return b;
+   private int to1D(int row, int column) {
+      return row * dimension() + column;
    }
 
-   private Board verticalShiftNeighbour()
-   {
-      return new char[0];
+   private Board getBoard(int newGapPosition) {
+      char[] horizontalShift = Arrays.copyOf(blocks, blocks.length);
+      Board b = new Board(horizontalShift, dimension(), newGapPosition);
+      horizontalShift[gapPosition] = horizontalShift[newGapPosition];
+      horizontalShift[newGapPosition] = GAP;
+      return b;
    }
 
    // does this board equal y?
@@ -203,12 +199,12 @@ public class Board
    @Override
    public String toString()
    {
-      StringBuilder s = new StringBuilder(blocks.length + "\n");
+      StringBuilder s = new StringBuilder(dimension() + "\n");
 
       for (int i = 0; i < blocks.length; i++)
       {
-         char block = blocks[i];
-         s.append(" ").append(block);
+         int block = blocks[i];
+         s.append(String.format("%3d", block));
 
          if ((i + 1) % dimension() == 0)
          {
@@ -243,8 +239,24 @@ public class Board
       public Index invoke()
       {
          i = p / dimension();
-         j = p - i * dimension() - 1;
+         j = p - i * dimension();
          return this;
+      }
+
+      public boolean leftShiftAllowed() {
+         return j > 0;
+      }
+
+      public boolean rightShiftAllowed() {
+         return j < dimension() - 1;
+      }
+
+      public boolean topShiftAllowed() {
+         return i > 0;
+      }
+
+      public boolean bottomShiftAllowed() {
+         return i < dimension() - 1;
       }
    }
 }
