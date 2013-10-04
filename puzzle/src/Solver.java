@@ -43,11 +43,11 @@ public class Solver
    }
 
    // is the initial board solvable?
-   public boolean isSolvable2()
+   private boolean isSolvable2()
    {
       if (solvable != null) return solvable;
 
-
+      int manhatan = manhattanDistance(initialPosition.)
 
       Board twinPosition = initialPosition.twin();
 
@@ -195,13 +195,13 @@ public class Solver
          expectedX = expectedY = N * N - 1;
       }
       else {
-         expectedY = (block - 1) / N;
-         expectedX = (block - 1) - x * N;
+         int p = block - 1;
+         expectedY = p / N;
+         expectedX = p - expectedY * N;
       }
 
       int dy = Math.abs(expectedY - y);
       int dx = Math.abs(expectedX - x);
-
       return dy + dx;
    }
 
