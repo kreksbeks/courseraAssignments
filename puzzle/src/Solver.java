@@ -36,10 +36,13 @@ public class Solver
 
       if (initBoardSolved)
       {
-         Stack<Board> s = reconstructSolution(stepInitBoard);
-         solution = s;
+         solution = reconstructSolution(stepInitBoard);
          solvable = true;
-         minNoOfMovesToSolve = s.size();
+         minNoOfMovesToSolve = stepInitBoard.stepsNumber;
+      }
+      else
+      {
+         solvable = false;
       }
 
       return initBoardSolved;
@@ -55,36 +58,16 @@ public class Solver
    public Iterable<Board> solution()
    {
       return isSolvable() ? solution : null;
-
-//      if (solution == null)
-//      {
-//         MinPQ<SearchNode> pq = new MinPQ<SearchNode>();
-//         SearchNode lastStep = solve(pq, initialPosition);
-//         solution = reconstructSolution(lastStep);
-//      }
-//
-//      return solution;
    }
-
-//   private SearchNode solve(MinPQ<SearchNode> pq, Board initialPosition1)
-//   {
-//      pq.insert(new SearchNode(initialPosition1, 0, null));
-//
-//      SearchNode step;
-//      do
-//      {
-//         step = nextStep(pq);
-//      } while (!step.position.isGoal());
-//
-//      return step;
-//   }
 
    private SearchNode nextStep(MinPQ<SearchNode> pq)
    {
       SearchNode next = pq.delMin();
 
-      for (Board neighbour : next.position.neighbors()) {
-         if (next.prevStep != null && neighbour.equals(next.prevStep.position)) {
+      for (Board neighbour : next.position.neighbors())
+      {
+         if (neighbour.equals(next.prevPosition()))
+         {
             continue;
          }
 
@@ -144,34 +127,22 @@ public class Solver
          this.prevStep = prevStep;
       }
 
+      Board prevPosition()
+      {
+         return prevStep == null ? null : prevStep.position;
+      }
+
       @Override
       public int compareTo(SearchNode o) {
-         int otherPriority = o.position.manhattan();
-         int thisPriority = position.manhattan();
+         int otherPriority = o.position.manhattan() + o.stepsNumber;
+         int thisPriority = position.manhattan() + stepsNumber;
 
          return thisPriority - otherPriority;
       }
-   }
 
-
-   private int manhattanDistance(int block, int x, int y)
-   {
-      int expectedY;
-      int expectedX;
-
-      int N = initialPosition.dimension();
-      if (block == 0) {
-         expectedX = expectedY = N * N - 1;
+      @Override public String toString()
+      {
+         return position.toString();
       }
-      else {
-         int p = block - 1;
-         expectedY = p / N;
-         expectedX = p - expectedY * N;
-      }
-
-      int dy = Math.abs(expectedY - y);
-      int dx = Math.abs(expectedX - x);
-      return dy + dx;
    }
-
 }

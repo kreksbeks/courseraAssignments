@@ -9,6 +9,7 @@ public class Board
    private final char[] blocks;
    private int gapPosition = -1;
    private int dimension;
+   private int manhattanDistance = -1;
 
    // construct a board from an N-by-N array of blocks
    // (where blocks[i][j] = block in row i, column j)
@@ -59,15 +60,17 @@ public class Board
    // sum of Manhattan distances between blocks and goal
    public int manhattan()
    {
-      int sumOfDistancesToGoal = 0;
+      if (manhattanDistance != -1) return manhattanDistance;
+
+      manhattanDistance = 0;
 
       for (int i = 0; i < blocks.length; i++)
       {
          char block = blocks[i];
-         sumOfDistancesToGoal += manhattanDistance(block, i);
+         manhattanDistance += manhattanDistance(block, i);
       }
 
-      return sumOfDistancesToGoal;
+      return manhattanDistance;
    }
 
    private int manhattanDistance(int block, int p)
