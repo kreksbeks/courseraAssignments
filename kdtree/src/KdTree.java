@@ -3,6 +3,7 @@ public class KdTree {
    private Node root;
    private int count;
    private Point2D closest;
+   private double bestDistance = Double.POSITIVE_INFINITY;
 
    // construct an empty set of points
    public KdTree()
@@ -23,7 +24,7 @@ public class KdTree {
    // add the point p to the set (if it is not already in the set)
    public void insert(Point2D p)
    {
-      root = insertInner(root, p, true);
+      root = insertInner(root, p, false);
    }
 
    private Node insertInner(Node root, Point2D value, boolean vertical)
@@ -33,11 +34,16 @@ public class KdTree {
          return new Node(value, vertical);
       }
 
-      double cmp = vertical ? root.p.x() - value.x() : root.p.y() - value.y();
+      if (root.p.equals(value))
+      {
+         root.p = value;
+         return root;
+      }
 
-      if      (cmp > 0) root.left = insertInner(root.left, value, !vertical);
-      else if (cmp < 0) root.right = insertInner(root.right, value, !vertical);
-      else              root.p = value;
+      double cmp = vertical ? value.x() - root.p.x() : value.y() - root.p.y();
+
+      if (cmp < 0) root.left = insertInner(root.left, value, !vertical);
+      else         root.right = insertInner(root.right, value, !vertical);
 
       return root;
    }
@@ -46,11 +52,12 @@ public class KdTree {
    {
       if (root == null) return null;
 
-      int cmp = root.p.compareTo(p);
+      if (root.p.equals(p)) return root;
 
-      if      (cmp > 0) return get(root.left, p);
-      else if (cmp > 0) return get(root.right, p);
-      else              return root;
+      double cmp = root.isVertical ? p.x() - root.p.x() : p.y() - root.p.y();
+
+      if (cmp < 0)  return get(root.left, p);
+      else          return get(root.right, p);
    }
 
    // does the set contain the point p?
@@ -114,32 +121,25 @@ public class KdTree {
    public Iterable<Point2D> range(RectHV rect)
    {
       SET<Point2D> r = new SET<Point2D>();
+
+      if (rect == null) return r;
+
       rangeInner(root, rect, r);
+
       return r;
    }
 
-   private void rangeInner(Node root, RectHV rect, SET<Point2D> within)
+   private void rangeInner(Node root, RectHV range, SET<Point2D> within)
    {
-      if (root == null || rect.height() == 0) return;
+      if (root == null) return;
 
-      if (rect.contains(root.p)) within.add(root.p);
+      if (range.contains(root.p)) within.add(root.p);
 
-      boolean right = root.right != null;
-      boolean left = root.left != null;
+      boolean left = root.isVertical ? range.xmin() < root.p.x() : range.ymin() < root.p.y();
+      boolean right = root.isVertical ? range.xmax() >= root.p.x() : range.ymax() >= root.p.y();
 
-      if (root.isVertical)
-      {
-         right = right && rect.xmax() >= root.p.x();
-         left = left && rect.xmin() <= root.p.x();
-      }
-//      else
-//      {
-//         right = right && rect.ymax() >= root.p.y();
-//         left = left && rect.ymin() <= root.p.y();
-//      }
-
-      if (right) rangeInner(root.right, rect, within);
-      if (left) rangeInner(root.left, rect, within);
+      if (left)  rangeInner(root.left, range, within);
+      if (right) rangeInner(root.right, range, within);
    }
 
    // a nearest neighbor in the set to p; null if set is empty
@@ -147,47 +147,34 @@ public class KdTree {
    {
       if (isEmpty()) return null;
 
-      closest = root.p;
-      return nearestInner(root, p, root.p);
+      closest = null;
+      bestDistance = Double.POSITIVE_INFINITY;
+      nearestInner(root, p);
+      return closest;
    }
 
-   private Point2D nearestInner(Node current, Point2D p, Point2D closest)
+   private void nearestInner(Node current, Point2D p)
    {
-      if (current == null) return closest;
+      if (current == null) return;
 
-      double minDist = closest.distanceSquaredTo(p);
       double dist = current.p.distanceSquaredTo(p);
-      if (dist < minDist)
+
+      if (dist < bestDistance)
       {
+         bestDistance = dist;
          closest = current.p;
       }
 
-      double d = current.isVertical ? p.x() - current.p.x() : p.y() - current.p.y();
+      double d = current.isVertical ? current.p.x() - p.x() : current.p.y() - p.y();
 
-      if (d < 0)
-      {
-         if (current.left != null)
-         {
-            closest = nearestInner(current.left, p, closest);
-         }
-         if (current.right != null && -d < minDist)
-         {
-            closest = nearestInner(current.right, p, closest);
-         }
-      }
-      else
-      {
-         if (current.right != null)
-         {
-            closest = nearestInner(current.right, p, closest);
-         }
-         if (current.left != null && d < minDist)
-         {
-            closest = nearestInner(current.left, p, closest);
-         }
-      }
+      if   (d > 0)  nearestInner(current.left, p);
+      else          nearestInner(current.right, p);
 
-      return closest;
+      if (Math.abs(d * d) < bestDistance)
+      {
+         if (d > 0) nearestInner(current.right, p);
+         else       nearestInner(current.left, p);
+      }
    }
 
    private static class Node
@@ -197,7 +184,7 @@ public class KdTree {
       Node right;
       boolean isVertical;
 
-      public Node(Point2D p, boolean vertical)
+      Node(Point2D p, boolean vertical)
       {
          this.p = p;
          this.isVertical = vertical;
